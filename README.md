@@ -8,6 +8,7 @@ Metrics:
 - Ranges --> represented as a number line. Each response gets a numeric score based on metric, and then is plotted on the number line, colored for time of life 
     - Perceived risk orientation (Risk-taking --> Risk-averse)
     - Perceived Spontaniety (Planned --> Spontaneous)
+        - Axis definition: Left end: Rigid, Structured, Planned, unchangeing --> Right end: Spontaneous/flexible/impulsive 
     - Perceived Ambition/Drive (Laid Back --> Ambitious)
     - Perceived Creativity (Unoriginal --> Incredibly creative)
     - Perceivied Consistency/Reliability
@@ -37,35 +38,6 @@ Metrics:
 
 
 
-
-OPTIONAL: LOOK INTO DATA MORE:
-
-Clean v1 Metric Set (Recommended)
-
-If I were writing this into your README:
-
-Core Metrics
-
-Perceived risk orientation (spontaneous ↔ cautious)
-
-Perceived social warmth (warm ↔ reserved)
-
-Overall sentiment by:
-
-Geography
-
-Relationship duration
-
-Perception consistency vs variance
-
-Across contexts
-
-Across relationship length
-
-Supporting Metrics
-
-Linguistic abstraction level
-
-Keyword frequency & salience
-
-That’s it. Clean, interpretable, defensible.
+Technical details:
+--> to activate venv:
+    source venv/bin/activate
