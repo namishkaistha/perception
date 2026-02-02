@@ -1,6 +1,8 @@
 # perception
 A personal project to see how people's perception of me changes over time 
 
+
+TODO: should probably deal with bottom end spontaneity words
 The dataset exhibits high adjective density and strong semantic consistency, enabling reliable extraction of latent perception dimensions despite a modest sample size.
 
 01/01/2026:

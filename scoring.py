@@ -1,71 +1,75 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Any, Dict
 
-import numpy as np 
+import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-from sentence_transformers import SentenceTransformer
 
 @dataclass(frozen=True)
 class AnchorAxis:
     """
-    Represents a 1D semantic axis: left (planned) <-> right (spontaneous).
+    Represents a 1D semantic axis: left <-> right.
+
+    Example:
+      left = ["planned", "structured"]
+      right = ["spontaneous", "impulsive"]
     """
     name: str
     left_anchors: List[str]
     right_anchors: List[str]
 
 
-#remove duplicate anchor words, while keeping their original order
 def dedupe_preserve_order(items: List[str]) -> List[str]:
+    """Remove duplicates (case-insensitive) while preserving order."""
     seen = set()
-    out = []
-
+    out: List[str] = []
     for it in items:
         key = it.strip().lower()
         if key and key not in seen:
             seen.add(key)
             out.append(it.strip())
-    return out 
+    return out
 
-#map any numeric vector to [0,1] using the dataset's min/max
-# this normalizes values so that they are easily comparable
-def minmax_to_unit_interval(x: np.ndarray) -> np.ndarray:
-    xmin, xmax = float(np.min(x), float(np.max(x)))
-    if np.isclose(xmin, xmax):
-        return np.full_like(x, 0.5, dtype=float)
-    return (x-xmin) / (xmax-xmin)
 
-def unit_interval_to_minus1_plus1(x01: np.ndarray) -> np.ndarray:
-    """Map [0, 1] -> [-1, 1]."""
-    return 2.0 * x01 - 1.0
+
+#for zscore
+def zscore(x: np.ndarray) -> np.ndarray:
+    mean = float(np.mean(x))
+    std = float(np.std(x))
+    if np.isclose(std, 0.0):
+        return np.zeros_like(x)
+    return (x - mean) / std
+
+
 
 def compute_axis_scores(
-        texts: List[str],
-        axis: AnchorAxis,
-        model: SentenceTransformer,
+    texts: List[str],
+    axis: AnchorAxis,
+    model: Any,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Compute a raw directional score per text as:
-        score = mean_sim(right_anchors) - mean_sim(left_anchors)
+    Compute directional raw score per text:
+
+        raw_score = mean_sim(right_anchors) - mean_sim(left_anchors)
 
     Returns:
-      raw_scores: (N,) float
-      left_sims: (N,) mean cosine sim to left anchors
+      raw_scores: (N,)
+      left_sims:  (N,) mean cosine sim to left anchors
       right_sims: (N,) mean cosine sim to right anchors
     """
     if not texts:
         return np.array([]), np.array([]), np.array([])
-    
+
     left = dedupe_preserve_order(axis.left_anchors)
     right = dedupe_preserve_order(axis.right_anchors)
 
-    # Encode texts + anchors into normalized embeddings
-    text_emb = model.encode(texts, normalize_embeddings=True)
-    left_emb = model.encode(left, normalize_embeddings=True)
-    right_emb = model.encode(right, normalize_embeddings=True)
+    # Encode texts + anchors into normalized embeddings.
+    # normalize_embeddings=True => cosine similarity is just dot product.
+    text_emb = model.encode(texts, normalize_embeddings=True, show_progress_bar=True)
+    left_emb = model.encode(left, normalize_embeddings=True, show_progress_bar=False)
+    right_emb = model.encode(right, normalize_embeddings=True, show_progress_bar=False)
 
     # Cosine similarity matrices: (N x A)
     left_sim_matrix = cosine_similarity(text_emb, left_emb)
@@ -77,35 +81,39 @@ def compute_axis_scores(
     raw_scores = right_sims - left_sims
     return raw_scores, left_sims, right_sims
 
+
 def score_texts_on_axis(
     texts: List[str],
     axis: AnchorAxis,
     model_name: str = "all-MiniLM-L6-v2",
-) -> dict:
+    device: str = "cpu",
+) -> Dict[str, Any]:
     """
     Convenience wrapper:
-    - loads model
-    - computes raw score
-    - normalizes to [-1, 1] for plotting
+    - imports SentenceTransformer lazily (avoids import-time issues elsewhere)
+    - loads the model
+    - computes raw score and normalized score in [-1, 1]
 
-    Returns a dict with:
-      raw_scores, score_01, score_m11, left_sims, right_sims
+    Returns dict with:
+      raw_scores, score_01, score_m11, left_sims, right_sims,
+      model_name, axis_name, left_anchors, right_anchors
     """
-    model = SentenceTransformer(model_name)
+    print("[score_texts_on_axis] importing SentenceTransformer...", flush=True)
+    from sentence_transformers import SentenceTransformer
+    print("[score_texts_on_axis] imported SentenceTransformer", flush=True)
 
-    raw_scores, left_sims, right_sims = compute_axis_scores(
-        texts=texts,
-        axis=axis,
-        model=model,
-    )
+    print(f"[score_texts_on_axis] loading model: {model_name} on {device}...", flush=True)
+    model = SentenceTransformer(model_name, device=device)
+    print("[score_texts_on_axis] model loaded", flush=True)
 
-    score_01 = minmax_to_unit_interval(raw_scores)
-    score_m11 = unit_interval_to_minus1_plus1(score_01)
+    raw_scores, left_sims, right_sims = compute_axis_scores(texts, axis, model)
+
+    score_z = zscore(raw_scores)
+
 
     return {
         "raw_scores": raw_scores,
-        "score_01": score_01,
-        "score_m11": score_m11,
+        "score_z": score_z,
         "left_sims": left_sims,
         "right_sims": right_sims,
         "model_name": model_name,
@@ -113,3 +121,4 @@ def score_texts_on_axis(
         "left_anchors": dedupe_preserve_order(axis.left_anchors),
         "right_anchors": dedupe_preserve_order(axis.right_anchors),
     }
+
