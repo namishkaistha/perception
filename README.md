@@ -3,6 +3,7 @@ A personal project to see how people's perception of me changes over time
 
 
 TODO: should probably deal with bottom end spontaneity words
+TODO: need to refactor code to work for a bunch of other contexts/scoring areas. Will need to be expanded upon
 The dataset exhibits high adjective density and strong semantic consistency, enabling reliable extraction of latent perception dimensions despite a modest sample size.
 
 01/01/2026:
@@ -13,8 +14,7 @@ Metrics:
         - Axis definition: Left end: Rigid, Structured, Planned, unchangeing --> Right end: Spontaneous/flexible/impulsive 
     - Perceived Ambition/Drive (Laid Back --> Ambitious)
     - Perceived Creativity (Unoriginal --> Incredibly creative)
-    - Perceivied Consistency/Reliability
-    - Perceived Agency / self-direction (externally guided ↔ self-directed) --> MAY BE SCRAPPED!! 
+    - Perceivied Consistency/Reliability (unreliable --> reliable)
 
 Predictor metric --> 
     - Expected perception by context
